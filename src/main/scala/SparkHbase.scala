@@ -30,21 +30,13 @@ import org.apache.hadoop.hbase.client.HTable
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable
 import org.apache.hadoop.hbase.client.Result
 
-object SparkWordCount {
+object SparkHbase {
   def main(args: Array[String]) {
-    //val logFile = "YOUR_SPARK_HOME/README.md" // Should be some file on your system
-    //val spark = SparkSession.builder.appName("Simple Application").getOrCreate()
-    //val logData = spark.read.textFile(logFile).cache()
-    //val numAs = logData.filter(line => line.contains("a")).count()
-    //val numBs = logData.filter(line => line.contains("b")).count()
-    //println(s"Lines with a: $numAs, Lines with b: $numBs")
-    //spark.stop()
     val sparkConf = new SparkConf().setAppName("HBaseRead")
     val sc = new SparkContext(sparkConf)
     val conf = HBaseConfiguration.create()
-    val tableName = "enterprises"
+    val tableName = "/tables/employee"
 
-    conf.set("hbase.master", "localhost:60000")
     conf.setInt("timeout", 120000)
     conf.set(TableInputFormat.INPUT_TABLE, tableName)
 
@@ -56,7 +48,6 @@ object SparkWordCount {
 
     val hBaseRDD = sc.newAPIHadoopRDD(conf, classOf[TableInputFormat], classOf[ImmutableBytesWritable], classOf[Result])
     println("Number of Records found : " + hBaseRDD.count())
-
     val pairs = hBaseRDD.map(s => (s, 1))
     val counts = pairs.reduceByKey((a, b) => a + b)
 
