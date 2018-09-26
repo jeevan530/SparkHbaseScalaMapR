@@ -28,7 +28,7 @@ import org.apache.spark.sql.types._
 import collection.immutable._
 
 
-object HbaseReadToCSV {
+object HbaseReadToCSV2 {
   
   
   case class TableRow(rowkey: String, name: String, phone: String, city: String)
@@ -60,10 +60,8 @@ object HbaseReadToCSV {
         println("Need source hbase table and destination file name")
         System.exit(1)
     }
-    //val spark: SparkSession = SparkSession.builder.master("local").getOrCreate
-    val sparkConf = new SparkConf().setAppName("HBaseRead")
-    val sc = new SparkContext(sparkConf)
-    val sqlContext = new org.apache.spark.sql.SQLContext(sc);  
+    val spark: SparkSession = SparkSession.builder.master("local").getOrCreate
+    val sqlContext = spark.sqlContext//new org.apache.spark.sql.SQLContext(spark);  
     val conf = HBaseConfiguration.create()
     val tableName = args(0)
     val fileName = args(1)
@@ -77,22 +75,15 @@ object HbaseReadToCSV {
       admin.createTable(tableDesc)
     }
 
-    val hBaseRDD = sc.newAPIHadoopRDD(conf, classOf[TableInputFormat], classOf[ImmutableBytesWritable], classOf[Result])
+    val hBaseRDD = sqlContext.sparkSession.sparkContext.newAPIHadoopRDD(conf, classOf[TableInputFormat], classOf[ImmutableBytesWritable], classOf[Result])
     println("Number of Records found : " + hBaseRDD.count())
     val resultRDD = hBaseRDD.map(tuple => tuple._2)
     val newhbaserdd = resultRDD.map(TableRow.parseTableRow)
     newhbaserdd.foreach(println)
-    //val headerColumns = newhbaserdd.first().split(",").to[List]
-    //headerColumns.show()
-    //val schema = dfSchema(Seq("rowkey","name", "phone", "city"))
-    //val headerDf = sqlContext.createDataFrame(newhbaserdd, schema)
-    //headerDf.show();
-    //val df = TableRow("1","jeevans","928898938","sanjose").toCSV()
-    //df.show()
-    //val dfWithSchema = spark.createDataFrame(newhbaserdd).toDF("rowkey","name", "phone", "city")
-    //dfWithSchema.show()
-    newhbaserdd.saveAsTextFile(fileName)
-    sc.stop()
+    val dfWithSchema = spark.createDataFrame(newhbaserdd).toDF("rowkey","name", "phone", "city")
+    dfWithSchema.show()
+    dfWithSchema.write.csv(fileName)
+    spark.stop()
   }
 }
 
